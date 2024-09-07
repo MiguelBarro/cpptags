@@ -1,0 +1,9 @@
+cpptags	cpptags.txt	/*cpptags*
+cpptags-contents	cpptags.txt	/*cpptags-contents*
+cpptags-copyright	cpptags.txt	/*cpptags-copyright*
+cpptags-installation	cpptags.txt	/*cpptags-installation*
+cpptags-motivation	cpptags.txt	/*cpptags-motivation*
+cpptags-options	cpptags.txt	/*cpptags-options*
+cpptags-syntax	cpptags.txt	/*cpptags-syntax*
+cpptags-usage	cpptags.txt	/*cpptags-usage*
+cpptags.txt	cpptags.txt	/*cpptags.txt*
