@@ -1,4 +1,6 @@
 " cpp_tagfunc.vim: Sets up a cpp savvy tagfunc
+" GetLatestVimScripts: 6124 1 :AutoInstall: cpptags.vmb
+
 if empty(&filetype) || exists("b:did_ftplugin_cpp_tagfunc")
   finish
 endif
