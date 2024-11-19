@@ -66,7 +66,8 @@ Vundle, etc...) but vim plugin integration is extremely easy in later releases
 
 • Use |getscript| plugin to automatically download an update it. Update the
   local |$VIMRUNTIME|/GetLatest/GetLatestVimScripts.dat adding a line
-  associated with this plugin.
+  associated with this plugin: >
+    6124 1 :AutoInstall: cpptags.vmb
 
 Once installed the vim's filetype plugins must be enabled (see
 |:filetype-plugin-on|): >
