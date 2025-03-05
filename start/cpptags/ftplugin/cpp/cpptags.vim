@@ -7,4 +7,4 @@ endif
 " note that b:did_ftplugin is already set by the builtin version
 let b:did_ftplugin_cpp_tagfunc = 1
 " asocciate the customize tagfunc
-set tagfunc=cpptags#CppTagFunc
+setl tagfunc=cpptags#CppTagFunc
