@@ -20,15 +20,15 @@ endif
 if g:cpptag_logging
 
     if exists('g:cpptag_file')
-        " log to file 
+        " log to file
         let s:bufnr = bufadd(g:cpptag_file)
-        function s:Log(lines) 
+        function s:Log(lines)
             " save the arguments in the log file
             call appendbufline(s:bufnr, '$', a:lines)
         endfunction
     else
         " log to messages
-        function s:Log(lines) 
+        function s:Log(lines)
             " save the arguments in the log file
             if type(a:lines) == v:t_list
                 call foreach(a:lines, 'echomsg v:val')
@@ -38,7 +38,7 @@ if g:cpptag_logging
         endfunction
     endif
 else
-    function s:Log(lines) 
+    function s:Log(lines)
     endfunction
 endif
 
@@ -50,20 +50,31 @@ function! cpptags#CppTagFunc(pattern, flags, info)
 \            "flags: " . a:flags,
 \            "info: " . string(a:info)
 \   ])
-      
+
     if a:flags =~ 'c' && a:info->has_key('buf_ffname')
         " retrieve cursor position
         call s:Log(string(getcurpos(bufwinid(a:info['buf_ffname']))))
     endif
 
+    let search_pattern = a:pattern
+
+    " if pattern matches a builtin operator take heed ctags generates an operator tag
+    const operators = ['co_await', 'co_yield', 'co_return']
+    for op in operators
+        if search_pattern =~ '\<' .. op .. '\>' && search_pattern !~ 'operator\s\+' .. op
+            let search_pattern = substitute(search_pattern, op, 'operator ' .. op, "")
+            break
+        endif
+    endfor
+
     " try special processing
-    const pattern = '\%#=1\m\(\%(\i\+\%(<.\{-}>\)\?::\)*\)\(\i\+\)\(<.*>\)\?\((.*)\)\?'
-    let s = matchlist(a:pattern, pattern) 
+    const pattern = '\%#=1\m\(\%(\i\+\%(<.\{-}>\)\?::\)*\)\(\%(operator\s\+\)\?\i\+\)\(<.*>\)\?\((.*)\)\?'
+    let s = matchlist(search_pattern, pattern)
 
     if empty(s) || empty(s[2])
         " doesn't match expected pattern
         call s:Log("unexpected pattern")
-        let result = taglist(a:pattern)
+        let result = taglist(search_pattern)
     else
         let result = taglist(s[2])
     endif
@@ -200,7 +211,7 @@ function! cpptags#CppTagFunc(pattern, flags, info)
         " only methods and functions
         let result = result->filter({idx, val -> val['kind'] =~ 'function\|prototype' ?
 \            1 : s:Log(string(val) .. " removed because is neither function nor method")})
-       
+
         function! s:SortKinds(item1, item2)
             let f1 = a:item1['kind'] == 'function'
             let f2 = a:item2['kind'] == 'function'
@@ -225,7 +236,7 @@ function! cpptags#CppTagFunc(pattern, flags, info)
         let sign = s[4]->substitute('^(\s*\(.*\)\s*)$','\1',"")->substitute('\s*,\s*','\\%(\\s\\+\\i*\\)\\=,\\s*',"")
 
         if empty(sign)
-            
+
             function! s:SortEmpty(item1, item2)
                 let e1 = a:item1['signature'] == '()'
                 let e2 = a:item2['signature'] == '()'
@@ -245,7 +256,7 @@ function! cpptags#CppTagFunc(pattern, flags, info)
 
             " prioritize empty signatures
             let result = result->sort(funcref("s:SortEmpty"))
-           
+
         else
             function! s:SignatureFilter(idx, val) closure
                 let keep = (a:val->has_key('signature') && a:val['signature'] =~ sign)
