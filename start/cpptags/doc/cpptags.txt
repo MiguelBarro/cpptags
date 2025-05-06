@@ -42,7 +42,7 @@ profit from the new ctags fields.
 An obvious precondition is having ctags installed. Is available on the most
 popular package managers:
 
-In order to install powershell core (pwsh) I advise:
+In order to install ctags I advise:
 • Windows. Use `winget`: >
     > winget install UniversalCtags.Ctags
 • Ubuntu. Use `apt`: >
@@ -86,7 +86,7 @@ REQUIRED TAG GENERATION OPTIONS                                *cpptags-options*
 In order to profit from the new ctags output several non-default options must be
 used: >
     $ ctags --extras=+f -R --languages=c++ --langmap=c++:+.c. --c++-kinds=+pl
-            -n --fields=+iaeSK --fields-c++=* --options=<option-file-path>
+            --fields=+iaeSK --fields-c++=* --options=<option-file-path>
             -f <output-tags-file> <source-dirs>
 
 The options file allows simplifying the command line by including there lenghtly
@@ -178,6 +178,22 @@ The syntax follows the natural semantics of C++. The basics are simple:
     ◇ prioritizes functions without arguments.
   • `:tsel a(int)` or `:tsel a(int, int)` will show e, d because matches the
     signature.
+
+▪ operator syntax: >
+    struct O {
+        operator int() { return 0; } // case a
+        operator A::cB() { return {}; } // case b
+    };
+    struct P {
+        operator int() { return 0; } // case c
+    };
+<
+  Doing:
+  • `:tsel operator int` will show case a and c
+  • `:tsel O::operator int` will show case a
+  • `:tsel operator cB` will show case b
+  • `:tsel O::operator cB` will show case b
+  • `:tsel O::operator A::cB` will show case b
 
 All the above rules can be combined together, for example in: >
     namespace A {

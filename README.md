@@ -75,7 +75,7 @@ For proper operation the plugin requires:
 In order to profit from the new [ctags output](https://docs.ctags.io/en/latest/man/ctags.1.html) several non-default options must be used:
 
 ```bash
-$ ctags --extras=+f -R --languages=c++ --langmap=c++:+.c. --c++-kinds=+pl -n --fields=+iaeSK --fields-c++=*
+$ ctags --extras=+f -R --languages=c++ --langmap=c++:+.c. --c++-kinds=+pl --fields=+iaeSK --fields-c++=*
         --options=<option-file-path> -f <output-tags-file> <source-dirs>
 ```
 
@@ -174,6 +174,23 @@ The syntax follows the natural semantics of C++. The basics are simple:
     + prioritizes definitions over declarations.
     + prioritizes functions without arguments.
   - `:tsel a(int)` or `:tsel a(int, int)` will show e, d because matches the signature.
+
++ operator syntax:
+  ```c++
+  struct O {
+      operator int() { return 0; } // case a
+      operator A::cB() { return {}; } // case b
+  };
+  struct P {
+      operator int() { return 0; } // case c
+  };
+  ```
+  Doing:
+  - `:tsel operator int` will show case a and c
+  - `:tsel O::operator int` will show case a
+  - `:tsel operator cB` will show case b
+  - `:tsel O::operator cB` will show case b
+  - `:tsel O::operator A::cB` will show case b
 
 All the above rules can be combined together, for example in:
 ```c++
