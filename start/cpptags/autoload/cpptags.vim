@@ -70,18 +70,24 @@ function! cpptags#CppTagFunc(pattern, flags, info)
     endfor
 
     " try special processing
-    const pattern = '\%#=1\m\(\%(\i\+\%(<.\{-}>\)\?::\)*\)\(\%(operator\s\+\)\?\i\+\)\(<.*>\)\?\((.*)\)\?'
+    const domain_pattern = '\(\%(\i\+\%(<.\{-}>\)\?::\)*\)'
+    const pattern = '\%#=1\m' .. domain_pattern .. '\(\%(operator\s\+' ..
+\                    domain_pattern .. '\)\?\i\+\)\(<.*>\)\?\((.*)\)\?'
 
     let s = matchlist(search_pattern, pattern)
 
     " auxiliary dict
     let elems = {
 \       'match': s[0],
-\       'namespace_class': s[1],
+\       'domain': s[1],
 \       'tagid': s[2],
-\       'template': s[3],
-\       'signature': s[4]
+\       'operator_domain': s[3],
+\       'template': s[4],
+\       'signature': s[5]
 \   }
+
+    " check if we are searching for an operator
+    let elems['is_operator'] = elems['tagid'] =~ '^operator\>'
 
     call s:Log(elems)
 
@@ -89,6 +95,11 @@ function! cpptags#CppTagFunc(pattern, flags, info)
         " doesn't match expected pattern
         call s:Log("unexpected pattern")
         let result = taglist(search_pattern)
+    elseif elems['is_operator']
+        " search operator for type independently from the operator domain
+        let operator_pattern = elems['tagid']->substitute(
+\           '^operator\s\+' .. domain_pattern, 'operator .*', "")
+        let result = taglist(operator_pattern)
     else
         let result = taglist(elems['tagid'])
     endif
@@ -99,16 +110,18 @@ function! cpptags#CppTagFunc(pattern, flags, info)
         return result
     endif
 
-    " filter by exact name
-    let exact_name_pattern = '\m\%(::\)\?' . elems['tagid'] . '$'
-    let result = result->filter({idx, val -> val["name"]
-\       =~ exact_name_pattern ? 1 : s:Log(string(val) .
-\       " removed because name doesn't match: " . exact_name_pattern)})
+    " filter by exact name, for operators is done already
+    if !elems['is_operator']
+        let exact_name_pattern = '\m\<' . elems['tagid'] . '$'
+        let result = result->filter({idx, val -> val["name"]
+\           =~ exact_name_pattern ? 1 : s:Log(string(val) .
+\           " removed because name doesn't match: " . exact_name_pattern)})
+    endif
 
     " filter by namespace or class
-    if !empty(elems['namespace_class'])
-        " split s1 and get last identifier (remove <⋯> because ctags doesn't provide hint)
-        let id = split(elems['namespace_class'], '::')[-1]
+    if !empty(elems['domain'])
+        " split domain and get last identifier (remove <⋯> because ctags doesn't provide hint)
+        let id = split(elems['domain'], '::')[-1]
         " remove template specialization on classes (ctags cannot handle it)
         let id = id->substitute("<.*>","","")
 
@@ -287,6 +300,30 @@ function! cpptags#CppTagFunc(pattern, flags, info)
             let result = result->filter(funcref("s:SignatureFilter"))
 
         endif
+
+    endif
+
+    " filter by operator domain the operator cast
+    if !empty(elems['operator_domain'])
+        " split domain and get last identifier (remove <⋯> because ctags doesn't provide hint)
+        let id = split(elems['operator_domain'], '::')[-1]
+        " remove template specialization on classes (ctags cannot handle it)
+        let id = id->substitute("<.*>","","")
+
+        function! s:OperatorDomainFilter(idx, val) closure
+            " extract operator domain from tag
+            let res = matchlist(a:val['name'], 'operator\s\+\(\S*\)::')
+            let keep = !empty(res[1]) && res[1] =~ id
+
+            if !keep
+                call s:Log(string(a:val) .. " removed because doesn't match operator domain " .. id)
+            endif
+
+            return keep
+        endfunction
+
+        " prioritize empty signatures
+        let result = result->sort(funcref("s:OperatorDomainFilter"))
 
     endif
 
