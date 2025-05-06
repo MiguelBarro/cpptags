@@ -17,30 +17,26 @@ if !exists('g:cpptag_logging')
     let g:cpptag_logging = 0
 endif
 
-if g:cpptag_logging
+function s:Log(lines)
+
+    if !g:cpptag_logging
+        return
+    endif
 
     if exists('g:cpptag_file')
-        " log to file
+        " save the arguments in the log file
         let s:bufnr = bufadd(g:cpptag_file)
-        function s:Log(lines)
-            " save the arguments in the log file
-            call appendbufline(s:bufnr, '$', a:lines)
-        endfunction
+        call appendbufline(s:bufnr, '$', a:lines)
     else
-        " log to messages
-        function s:Log(lines)
-            " save the arguments in the log file
-            if type(a:lines) == v:t_list
-                call foreach(a:lines, 'echomsg v:val')
-            else
-                echomsg a:lines
-            endif
-        endfunction
+        " save the arguments in the log file
+        if type(a:lines) == v:t_list
+            call foreach(a:lines, 'echomsg v:val')
+        else
+            echomsg a:lines
+        endif
     endif
-else
-    function s:Log(lines)
-    endfunction
-endif
+
+endfunction
 
 function! cpptags#CppTagFunc(pattern, flags, info)
 
@@ -50,6 +46,12 @@ function! cpptags#CppTagFunc(pattern, flags, info)
 \            "flags: " . a:flags,
 \            "info: " . string(a:info)
 \   ])
+
+    if a:flags =~ 'r'
+        call s:Log("regular expression: ordinary tag processing")
+        let result = taglist(a:pattern)
+        return result
+    endif
 
     if a:flags =~ 'c' && a:info->has_key('buf_ffname')
         " retrieve cursor position
@@ -69,14 +71,26 @@ function! cpptags#CppTagFunc(pattern, flags, info)
 
     " try special processing
     const pattern = '\%#=1\m\(\%(\i\+\%(<.\{-}>\)\?::\)*\)\(\%(operator\s\+\)\?\i\+\)\(<.*>\)\?\((.*)\)\?'
+
     let s = matchlist(search_pattern, pattern)
 
-    if empty(s) || empty(s[2])
+    " auxiliary dict
+    let elems = {
+\       'match': s[0],
+\       'namespace_class': s[1],
+\       'tagid': s[2],
+\       'template': s[3],
+\       'signature': s[4]
+\   }
+
+    call s:Log(elems)
+
+    if empty(s) || empty(elems['tagid'])
         " doesn't match expected pattern
         call s:Log("unexpected pattern")
         let result = taglist(search_pattern)
     else
-        let result = taglist(s[2])
+        let result = taglist(elems['tagid'])
     endif
 
     " in absence of results or non-command case ignore processing
@@ -86,13 +100,15 @@ function! cpptags#CppTagFunc(pattern, flags, info)
     endif
 
     " filter by exact name
-    let result = result->filter({idx, val -> val["name"] == s[2] ?
-\       1 : s:Log(string(val) .. " removed because name doesn't match")})
+    let exact_name_pattern = '\m\%(::\)\?' . elems['tagid'] . '$'
+    let result = result->filter({idx, val -> val["name"]
+\       =~ exact_name_pattern ? 1 : s:Log(string(val) .
+\       " removed because name doesn't match: " . exact_name_pattern)})
 
     " filter by namespace or class
-    if !empty(s[1])
+    if !empty(elems['namespace_class'])
         " split s1 and get last identifier (remove <⋯> because ctags doesn't provide hint)
-        let id = split(s[1], '::')[-1]
+        let id = split(elems['namespace_class'], '::')[-1]
         " remove template specialization on classes (ctags cannot handle it)
         let id = id->substitute("<.*>","","")
 
@@ -136,7 +152,7 @@ function! cpptags#CppTagFunc(pattern, flags, info)
     endif
 
     " filter by template spec
-    if empty(s[3])
+    if empty(elems['template'])
         " remove them with template specialization
         let result = result->filter({idx, val -> val->has_key('specialization') ?
 \            s:Log(string(val) .. " removed because is a template specialization") : 1})
@@ -161,13 +177,13 @@ function! cpptags#CppTagFunc(pattern, flags, info)
         " deprioritize template
         let result = result->sort(funcref("s:SortTemplates"))
 
-    elseif s[3] == '<>'
+    elseif elems['template'] == '<>'
         " use <> to choose template definitions over specialization
         let result = result->filter({idx, val -> val->has_key('template') && !val->has_key('specialization') ?
 \            1 : s:Log(string(val) .. " removed because is not a plain template definition")})
     else
         " get param pattern from s3
-        let param = s[3]->substitute('^<\s*\(.*\)\s*>$','\1',"")->substitute('\s*,\s*','\\s*,\\s*',"")
+        let param = elems['template']->substitute('^<\s*\(.*\)\s*>$','\1',"")->substitute('\s*,\s*','\\s*,\\s*',"")
 
         function! s:TemplateFilter(idx, val) closure
             let keep = (a:val->has_key('specialization') && a:val['specialization'] =~ param)
@@ -183,7 +199,7 @@ function! cpptags#CppTagFunc(pattern, flags, info)
     endif
 
     " filter by signature
-    if empty(s[4])
+    if empty(elems['signature'])
 
         function! s:Priority(item)
             let p = 0
@@ -233,7 +249,7 @@ function! cpptags#CppTagFunc(pattern, flags, info)
         let result = result->sort(funcref("s:SortKinds"))
 
         " get sign pattern from s4
-        let sign = s[4]->substitute('^(\s*\(.*\)\s*)$','\1',"")->substitute('\s*,\s*','\\%(\\s\\+\\i*\\)\\=,\\s*',"")
+        let sign = elems['signature']->substitute('^(\s*\(.*\)\s*)$','\1',"")->substitute('\s*,\s*','\\%(\\s\\+\\i*\\)\\=,\\s*',"")
 
         if empty(sign)
 
