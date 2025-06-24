@@ -21,6 +21,7 @@ Copyright: Copyright (C) 2024 Miguel Barro                   *cpptags-copyright*
 4.  Usage.............................................: |cpptags-usage|
         REQUIRED TAG GENERATION OPTIONS...............: |cpptags-options|
         NEW TAG SYNTAX................................: |cpptags-syntax|
+5.  Compiler plugins..................................: |cpptags-compiler|
 
 ==============================================================================
 2. Motivation                                               *cpptags-motivation*
@@ -204,3 +205,41 @@ All the above rules can be combined together, for example in: >
 the command: >
     :tag A::B::m<true>(int)
 will match case b which is the result of combining the rules above.
+
+==============================================================================
+5. Compiler plugins                                         *cpptags-compiler*
+
+For convenience some extra compiler plugins are bundled:
+  • `cmake_msvc` which sets up |'errorformat'| for Visual C/C++ compiler ouput.
+  • `cmake _gcc` which sets up |'errorformat'| for gcc/c++ compiler ouput.
+
+In the plugis the |'makeprg'| is set up plainly as `cmake`. Thus, |:make| will
+require arguments, at least the `--build` one.
+
+Note that using `cmake` to compile requires two stages:
+
+  • Generator stage to create the project native files associated with the
+    selected generator. >sh
+        $ cmake -B <binary-path> <source-path>
+<    where:
+        ▪ <binary-path> is the folder where the native project files will
+          be created.
+        ▪ <source-path> is the folder where the C/C++ sources are.
+    This stage must be executed before the |:make| call.
+
+  • Build stage where the native tools are called to compile.
+    This is the one associated with the |:make| call. >sh
+        $ cmake --build <binary-path>
+<    With the default plugin set up for |'makeprg'| the call would be: >vim
+        :make --build <binary-path>
+
+Is convenient to customize |'makeprg'| to match specific use cases.
+For example, is possible to run `cmake` onto `wsl2` from a `vim` instance
+running on the windows host. >
+ :let &makeprg = "wsl cmake --build <binary-path> *>&1 \\| \\\% { $_ -replace '/mnt/c', 'C:' }"
+In this case `vim` is using `powershell` as shell (see |dos-powershell|) and
+the source path files referenced in the compiler output must be translated back
+to windows host paths (otherwise traversal of the list of errors would not
+work).
+
+ vim:tw=78:ts=8:noet:ft=help:norl:
