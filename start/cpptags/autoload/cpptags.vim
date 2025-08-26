@@ -126,9 +126,10 @@ function! cpptags#CppTagFunc(pattern, flags, info)
         let id = id->substitute("<.*>","","")
 
         function! s:ClassFilter(idx, val) closure
-            let keep = (a:val->has_key('namespace') && a:val['namespace'] =~ id)
-\                      || (a:val->has_key('class') && a:val['class'] =~ id)
-\                      || (a:val->has_key('struct') && a:val['struct'] =~ id)
+
+            let keep = a:val->has_key('namespace') && a:val['namespace'] =~ id
+\                      || a:val->has_key('class') && a:val['class'] =~ id
+\                      || a:val->has_key('struct') && a:val['struct'] =~ id
             if !keep
                 call s:Log(string(a:val) .. " removed because doesn't match namespace/class " .. id)
             endif
@@ -139,19 +140,27 @@ function! cpptags#CppTagFunc(pattern, flags, info)
         " filtering matchlist by class or namespace
         let result = result->filter(funcref("s:ClassFilter"))
 
-        function! s:SortNamespace(item1, item2) closure
-            let lastid = id .. "$"
+        function! s:SortNamespace(item1, item2, exact = 0) closure
+
+            let lastid = id .. '$'
+            if a:exact
+                let lastid = "\\<" .. lastid
+            endif
             let l1 = a:item1->has_key('namespace') && a:item1['namespace'] =~ lastid ||
-\                    a:item1->has_key('class') && a:item1['class'] =~ lastid
+\                    a:item1->has_key('class') && a:item1['class'] =~ lastid ||
+\                    a:item1->has_key('struct') && a:item1['struct'] =~ lastid
             let l2 = a:item2->has_key('namespace') && a:item2['namespace'] =~ lastid ||
-\                    a:item2->has_key('class') && a:item2['class'] =~ lastid
+\                    a:item2->has_key('class') && a:item2['class'] =~ lastid ||
+\                    a:item2->has_key('struct') && a:item2['struct'] =~ lastid
 
             if l1 && l2
-                return 0
+                " favour exact match if any
+                return a:exact ? 0 : s:SortNamespace(a:item1, a:item2, 1)
             elseif !l1 && l2
                 call s:Log("reorder " .. string(a:item1) .. " after " .. string(a:item2))
                 return 1
             elseif l1 && !l2
+                call s:Log("reorder " .. string(a:item2) .. " after " .. string(a:item1))
                 return -1
             else
                 return 0
@@ -170,24 +179,47 @@ function! cpptags#CppTagFunc(pattern, flags, info)
         let result = result->filter({idx, val -> val->has_key('specialization') ?
 \            s:Log(string(val) .. " removed because is a template specialization") : 1})
 
+        function! s:ClassName(val)
+            if a:val->has_key('class')
+                return a:val['class']
+            elseif a:val->has_key('struct')
+                return a:val['struct']
+            else
+                return ''
+            endif
+        endfunction
+
         function! s:SortTemplates(item1, item2)
             let t1 = a:item1->has_key('template')
             let t2 = a:item2->has_key('template')
 
-            if t1 && t2
-                return 0
-            elseif t1 && !t2
-                call s:Log("reorder " .. string(a:item1) .. " after " .. string(a:item2))
-                return 1
-            elseif !t1 && t2
-                return -1
-            else
-                return 0
+            if t1 != t2
+                let n1 = a:item1->has_key('namespace')
+                let n2 = a:item2->has_key('namespace')
+
+                " check domain
+                if n1 && n2 && a:item1['namespace'] == a:item2['namespace']
+\                  || !n1 && !n2
+                    " Check class name
+                    if s:ClassName(a:item1) == s:ClassName(a:item2)
+
+                        " Choose order
+                        if t1 && !t2
+                            call s:Log("reorder " .. string(a:item1) .. " after " .. string(a:item2))
+                            return 1
+                        else
+                            call s:Log("reorder " .. string(a:item2) .. " after " .. string(a:item1))
+                            return -1
+                        endif
+                    endif
+                endif
             endif
+
+            return 0
 
         endfunction
 
-        " deprioritize template
+        " deprioritize template within same domain
         let result = result->sort(funcref("s:SortTemplates"))
 
     elseif elems['template'] == '<>'
