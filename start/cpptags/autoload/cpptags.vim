@@ -241,6 +241,30 @@ function! cpptags#CppTagFunc(pattern, flags, info)
 
         " filtering matchlist by specialization
         let result = result->filter(funcref("s:TemplateFilter"))
+
+        " specialization and exact matches
+        function! s:TemplateSort(item1, item2, exact = 0) closure
+
+            let temp_pat = a:exact ? ('\<' .. param .. '\>') : param
+
+            let t1 = a:item1->has_key('specialization') && a:item1['specialization'] =~ temp_pat
+            let t2 = a:item2->has_key('specialization') && a:item2['specialization'] =~ temp_pat
+
+            if t1 && t2
+                " favour exact match if any
+                return a:exact ? 0 : s:TemplateSort(a:item1, a:item2, 1)
+            elseif !t1 && t2
+                call s:Log("reorder " .. string(a:item1) .. " after " .. string(a:item2))
+                return 1
+            elseif t1 && !t2
+                call s:Log("reorder " .. string(a:item2) .. " after " .. string(a:item1))
+                return -1
+            else
+                return 0
+            endif
+        endfunction
+
+        let result = result->sort(funcref("s:TemplateSort"))
     endif
 
     " filter by signature
@@ -283,6 +307,7 @@ function! cpptags#CppTagFunc(pattern, flags, info)
                 call s:Log("reorder " .. string(a:item1) .. " after " .. string(a:item2))
                 return 1
             elseif f1 && !f2
+                call s:Log("reorder " .. string(a:item2) .. " after " .. string(a:item1))
                 return -1
             else
                 return 0
