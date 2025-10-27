@@ -1,0 +1,28 @@
+# GSTREAMER OPTIONS
+
+#define G_BEGIN_DECLS {
+-D G_BEGIN_DECLS={
+
+#define G_DECLARE_FINAL_TYPE(GstCustomPlugin, gst_customplugin, GST, CUSTOMPLUGIN, GstElement) ... VC++ intellisense provided
+-D G_DECLARE_FINAL_TYPE (GstCustomPlugin, gst_customplugin, GST, CUSTOMPLUGIN, GstElement)= GType gst_customplugin##_get_type(void); typedef struct _##GstCustomPlugin GstCustomPlugin; typedef struct { GstElement##Class parent_class; } GstCustomPlugin##Class; static inline GstCustomPlugin* GST##_##CUSTOMPLUGIN(gpointer ptr) { return (((GstCustomPlugin*)(void*)g_type_check_instance_cast((GTypeInstance*)(ptr), (gst_customplugin##_get_type())))); } static inline gboolean GST##_IS_##CUSTOMPLUGIN(gpointer ptr) { return ((g_type_check_instance_is_a((GTypeInstance*)(ptr), (gst_customplugin##_get_type())))); }
+
+#define GST_DEBUG_CATEGORY_STATIC(var)			void _gst_debug_dummy_static_##var (void)
+-D GST_DEBUG_CATEGORY_STATIC(var)=void _gst_debug_dummy_static_##var (void)
+
+#define G_DEFINE_TYPE (GstCustomPlugin, gst_customplugin, GST_TYPE_ELEMENT) ... VC++ intellisense provided
+-D G_DEFINE_TYPE (GstCustomPlugin, gst_customplugin, GST_TYPE_ELEMENT)= static void gst_customplugin##_init(GstCustomPlugin* self); static void gst_customplugin##_class_init(GstCustomPlugin##Class* klass); static GType gst_customplugin##_get_type_once(void); static gpointer parent_class = ((void*)0); static gint GstCustomPlugin##_private_offset; static void gst_customplugin##_class_intern_init(gpointer klass) {} static inline gpointer gst_customplugin##_get_instance_private(GstCustomPlugin* self) {} GType gst_customplugin##_get_type(void) {} static GType gst_customplugin##_get_type_once(void) {}
+
+#define GST_ELEMENT_REGISTER_DEFINE(customplugin, customplugin_n, GST_RANK_NONE, GST_TYPE_CUSTOMPLUGIN) ... VC++ intellisense provided
+-D GST_ELEMENT_REGISTER_DEFINE (customplugin, customplugin_n, GST_RANK_NONE, GST_TYPE_CUSTOMPLUGIN)=gboolean gst_element_register_##customplugin(GstPlugin* plugin) { return gst_element_register(plugin, customplugin_n, GST_RANK_NONE, (gst_##customplugin##_get_type())); }
+
+#define GST_ELEMENT_REGISTER(customplugin, plugin) ... VC++ intellisense provided
+-D GST_ELEMENT_REGISTER(customplugin, plugin)= gst_element_register_##customplugin(plugin)
+
+# define GST_PLUGIN_DEFINE (GST_VERSION_MAJOR, GST_VERSION_MINOR, customplugin, customplugin_n, customplugin_init, PACKAGE_VERSION, GST_LICENSE, GST_PACKAGE_NAME, GST_PACKAGE_ORIGIN) as VC++ intellisense
+-D GST_PLUGIN_DEFINE (GST_VERSION_MAJOR, GST_VERSION_MINOR, customplugin, customplugin_n, customplugin_init, PACKAGE_VERSION, GST_LICENSE, GST_PACKAGE_NAME, GST_PACKAGE_ORIGIN)= const GstPluginDesc* gst_plugin_##customplugin##_get_desc(void); void gst_plugin_##customplugin##_register(void); static const GstPluginDesc gst_plugin_desc = { GST_VERSION_MAJOR, GST_VERSION_MINOR,#customplugin, (gchar*)customplugin_n, customplugin_init, PACKAGE_VERSION, GST_LICENSE, "gst-"  customplugin_n, GST_PACKAGE_NAME, GST_PACKAGE_ORIGIN, ((void *)0), ((void *)0)}; const GstPluginDesc * gst_plugin_##customplugin##_get_desc (void) { return &gst_plugin_desc } void gst_plugin_##customplugin##_register (void) { gst_plugin_register_static (GST_VERSION_MAJOR, GST_VERSION_MINOR,#customplugin, customplugin_n, customplugin_init, PACKAGE_VERSION, GST_LICENSE, "gst-"  customplugin_n, GST_PACKAGE_NAME, GST_PACKAGE_ORIGIN); } 
+
+#define GST_STATIC_PAD_TEMPLATE(padname, dir, pres, caps) { padname, dir, pres, caps }
+-D GST_STATIC_PAD_TEMPLATE(padname, dir, pres, caps)= { padname, dir, pres, caps }
+
+#define GST_STATIC_CAPS(string) { NULL, string, GST_PADDING_INIT }
+-D GST_STATIC_CAPS(string)=  ({ NULL, string, GST_PADDING_INIT })
