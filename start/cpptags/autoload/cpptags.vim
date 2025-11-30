@@ -51,6 +51,15 @@ function! cpptags#CppTagFunc(pattern, flags, info)
         call s:Log("regular expression: ordinary tag processing")
         let result = taglist(a:pattern)
         return result
+    elseif a:pattern =~ '^\i\|\.$'
+        let result = taglist(a:pattern)
+        " search for an exact filename match
+        let result = result->filter({idx, val ->
+\           val["name"] =~ a:pattern && val['kind'] == 'file'})
+        if !empty(result)
+            call s:Log("filename pattern: ordinary tag processing")
+            return result
+        endif
     endif
 
     if a:flags =~ 'c' && a:info->has_key('buf_ffname')
