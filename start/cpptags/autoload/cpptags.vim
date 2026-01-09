@@ -240,15 +240,16 @@ function! cpptags#CppTagFunc(pattern, flags, info)
         let param = elems['template']->substitute('^<\s*\(.*\)\s*>$','\1',"")->substitute('\s*,\s*','\\s*,\\s*',"")
 
         function! s:TemplateFilter(idx, val) closure
-            let keep = (a:val->has_key('specialization') && a:val['specialization'] =~ param)
+            let keep = a:val->has_key('specialization') && a:val['specialization'] =~ param
+\                      || a:val->has_key('template') && a:val['template'] != '<>' && a:val['template'] =~ param
             if !keep
-                call s:Log(string(a:val) .. " removed because doesn't match template specialization " .. param)
+                call s:Log(string(a:val) .. " removed because doesn't match template or specialization " .. param)
             endif
 
             return keep
         endfunction
 
-        " filtering matchlist by specialization
+        " filtering matchlist by template or specialization
         let result = result->filter(funcref("s:TemplateFilter"))
 
         " specialization and exact matches
