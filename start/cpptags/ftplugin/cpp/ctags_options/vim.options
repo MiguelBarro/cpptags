@@ -1,0 +1,7 @@
+-D INIT(A)=
+-D INIT2(A)=
+-D INIT3(A)=
+-D INIT4(A)=
+-D INIT5(A)=
+-D INIT6(A)=
+-I EXTERN
